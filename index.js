@@ -2,15 +2,15 @@ const xlsx = require("node-xlsx"),
   fs = require("fs"),
   list = xlsx.parse("./人才引进公示.xlsx");
 /**
+ * 功能：对数组的指定位置赋值，并填充之前的空位
  * 如果直接对地址赋值，可能产生empty值，影响遍历
- * 本方法用undefined填充empty
  * @param { Array } arr 输入数组
  * @param { Number } lastIdx 输出数组的末位序号
  * @param { Number } lastVal 输出数组的末位值
  */
 function add0(arr, lastIdx, lastVal) {
   for (let t = lastIdx - arr.length; t > 0; t--) {
-    arr.push(); // 粗暴填充
+    arr.push(); // 粗暴填充undefined
   }
   arr[lastIdx] = lastVal;
   return arr; // 兼容
@@ -22,29 +22,32 @@ function start() {
     sheet1Head = [], // 表1的表头
     sheetCnt = []; // 用于创建表2，月份概况
 
-  data.forEach((item, idx) => {
-    let newCompany = 0; // 本批次新增的公司
-    idx = Math.floor(idx / 2); // 两个"半月" 合并成一个 "整月"
-    item.data.forEach((rowData) => {
-      const cName = rowData[0].replace(/\s/g, "");
-      const cData = companys[cName];
-      if (cData) {
-        if (cData[idx]) {
-          cData[idx] += 1;
-        } else {
-          add0(cData, idx, 1); // 举例：可能有前2位，现在对第4位赋值
+  (function transform() {
+    // 本方法主要将公示表转义为统计表的格式
+    data.forEach((item, idx) => {
+      let newCompany = 0; // 本批次新增的公司
+      idx = Math.floor(idx / 2); // 两个"半月" 合并成一个 "整月"
+      item.data.forEach((rowData) => {
+        const cName = rowData[0].replace(/\s/g, "");
+        const cData = companys[cName];
+        if (cData) {
+          if (cData[idx]) {
+            cData[idx] += 1;
+            return;
+          }
+          add0(cData, idx, 1); // 举例：对[1,2] 的第4位赋值，需要补全第3位
+          return;
         }
-      } else {
-        companys[cName] = add0([], idx, 1); // 对指定位置赋值，并补全前面的位
+        companys[cName] = add0([], idx, 1); // 举例：对[] 的第4位赋值，需要补全前3位
         newCompany++;
-      }
+      });
+      // 其他数据处理
+      const sheetName = item.name;
+      sheetCnt.push([sheetName, item.data.length, newCompany]);
+      sheet1Head[idx] = `${sheetName.slice(0, 2)}/${sheetName.slice(2, 4)}`;
     });
-    // 非核心数据处理
-    const sheetName = item.name;
-    sheetCnt.push([sheetName, item.data.length, newCompany]);
-    sheet1Head[idx] = `${sheetName.slice(0, 2)}/${sheetName.slice(2, 4)}`;
-  });
-  // 此时完成数据合并（数据统计）
+  })();
+
   // 下面根据累计数量排序，名称无序
   const oCompanys = [],
     monthCnt = Math.ceil(list.length / 2); // 原始表中一共有几个月的数据
@@ -57,7 +60,7 @@ function start() {
       }
       let cSum = cMonthCnt.reduce((sum = 0, item = 0) => sum + item); // undefined替换为0，首次执行时sum也可能是0
       oCompanys.push([key, ...cMonthCnt, cSum]);
-      // 非核心数据处理
+      // 其他数据处理
       if (cSum >= monthCnt * 2) {
         // 此处半月时不精准，稍微放宽了要求，无所谓
         focusCnt++;
@@ -67,13 +70,13 @@ function start() {
     oCompanys.sort((b, a) => {
       return a[lastIdx] - b[lastIdx];
     });
-    // 非核心数据处理
+    // 其他数据处理
     sheetCnt.push(["平均每月2条及以上的公司数", focusCnt]);
   })();
 
+  const outputName = "人才引进统计";
   // 输出
   (function output() {
-    const outputName = "人才引进统计";
     sheet1Head.unshift("公司名称");
     sheet1Head.push("累计");
     oCompanys.unshift(sheet1Head);
