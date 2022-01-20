@@ -16,7 +16,7 @@ function add0(arr, lastIdx, lastVal) {
   return arr; // 兼容
 }
 
-function start() {
+function start(noMd) {
   const data = list,
     companys = {}, // 用于创建表1，公司引入情况
     sheet1Head = [], // 表1的表头
@@ -92,6 +92,36 @@ function start() {
     fs.writeFileSync(`./${outputName}.xlsx`, buffer);
     console.log(`统计数据已输出为“${outputName}.xlsx”\n`);
   })();
+
+  if (noMd) {
+    // 由于excel没法进行二进制比对，不知道每次改了什么
+    // 所以默认输出.md格式的表格
+    // .md文件不包含表二“月份概况”的内容
+    return;
+  }
+  (function outputMd() {
+    let content = "";
+    oCompanys.forEach((row) => {
+      if (content) {
+        // 不是首次遍历，添加内容
+        row.forEach((col) => {
+          content += `|${col || 0}`; // excel中没有就空着，这里需要输出为0
+        });
+        content += "|\n";
+        return;
+      }
+      // 添加表头
+      let text2 = "";
+      row.forEach((col) => {
+        content += `|${col}`;
+        text2 += `|-`;
+      });
+      content += `|\n${text2}|\n`;
+    });
+    fs.writeFileSync(`./${outputName}.md`, content);
+    console.log(`.md 格式的统计表格已同步输出\n`);
+  })();
 }
 
-start();
+const arg = process.argv.splice(2)[0]; // 只校验第一个参数
+start(arg === "noMd");
