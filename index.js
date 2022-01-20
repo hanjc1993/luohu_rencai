@@ -40,8 +40,9 @@ function start() {
       }
     });
     // 非核心数据处理
-    sheetCnt.push([item.name, item.data.length, newCompany]);
-    sheet1Head[idx] = item.name.slice(0, 2);
+    const sheetName = item.name;
+    sheetCnt.push([sheetName, item.data.length, newCompany]);
+    sheet1Head[idx] = `${sheetName.slice(0, 2)}/${sheetName.slice(2, 4)}`;
   });
   // 此时完成数据合并（数据统计）
   // 下面根据累计数量排序，名称无序
