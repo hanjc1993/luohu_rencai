@@ -21,6 +21,7 @@ function start(noMd) {
     companys = {}, // 用于创建表1，公司引入情况
     sheet1Head = [], // 表1的表头
     sheetCnt = []; // 用于创建表2，月份概况
+  let sheetCntTotal = 0; // 表2的总累计数量
 
   (function transform() {
     // 本方法主要将公示表转义为统计表的格式
@@ -44,6 +45,7 @@ function start(noMd) {
       // 其他数据处理
       const sheetName = item.name;
       sheetCnt.push([sheetName, item.data.length, newCompany]);
+      sheetCntTotal += item.data.length;
       sheet1Head[idx] = `${sheetName.slice(0, 2)}/${sheetName.slice(2, 4)}`;
     });
   })();
@@ -71,6 +73,11 @@ function start(noMd) {
       return a[lastIdx] - b[lastIdx];
     });
     // 其他数据处理
+    sheetCnt.push([
+      "累计引进数量",
+      sheetCntTotal,
+      "家属可以随迁，实际引进人数大概为此数字的1.5-2倍",
+    ]);
     sheetCnt.push(["平均每月2条及以上的公司数", focusCnt]);
   })();
 
@@ -100,23 +107,15 @@ function start(noMd) {
     return;
   }
   (function outputMd() {
-    let content = "";
-    oCompanys.forEach((row) => {
-      if (content) {
-        // 不是首次遍历，添加内容
-        row.forEach((col) => {
-          content += `|${col || 0}`; // excel中没有就空着，这里需要输出为0
-        });
-        content += "|\n";
+    let content = "|排名|公司名称|累计|\n|-|-|-|\n"; // 添加表头
+    oCompanys.forEach((rowData, idx) => {
+      if (idx === 0) {
         return;
       }
-      // 添加表头
-      let text2 = "";
-      row.forEach((col) => {
-        content += `|${col}`;
-        text2 += `|-`;
-      });
-      content += `|\n${text2}|\n`;
+      // 添加内容
+      const companyName = rowData[0],
+        total = rowData[rowData.length - 1] || 0;
+      content += `${idx}|${companyName}|${total}|\n`; // excel中没有就空着，这里需要输出为0
     });
     fs.writeFileSync(`./${outputName}.md`, content);
     console.log(`.md 格式的统计表格已同步输出\n`);
