@@ -76,7 +76,7 @@ function start(noMd) {
     sheetCnt.push([
       "累计引进数量",
       sheetCntTotal,
-      "家属可以随迁，实际引进人数大概为此数字的1.5-2倍",
+      "家属可以随迁，实际引进人数大概为此数字的1.6-2倍",
     ]);
     sheetCnt.push(["平均每月2条及以上的公司数", focusCnt]);
   })();
